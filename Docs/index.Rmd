@@ -1,0 +1,306 @@
+---
+title: "Cyclistic Analysis"
+author: "Austin Carlson"
+date: "2023-07-04"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+## **Introduction**
+
+This data analysis is for a fictional bike company, Cyclistic. The scenario and 
+data was provided by Google Data Analytics Capstone program.
+
+Cyclistic is a bike-share program that features more than 5,800 bicycles and 600 docking stations. Cyclistic sets itself apart by also offering reclining bikes, 
+hand tricycles, and cargo bikes, making bike-share more inclusive to people with disabilities and riders who can't use a standard two-wheeled bike.
+
+The executive team at Cyclistic want to maximize the number of annual pass 
+members. To achieve this they want you to look at the differences between day 
+pass members and annual members. In addition, they want to use these differences 
+to help market their annual pass more effectively to day pass members.
+
+## **Phase 1: Ask**
+
+**1. Identify the business task**
+
+-   Analyze May 2023 Data from Cyclistic Users.
+-   Provide quality recommendations to the Cyclistic marketing team.
+
+**2. Consider the Key Stakeholders**
+
+**Primary Stakeholder(s)**
+
+-   Lily Moreno: Director of Marketing at Cyclistic
+-   Cyclistic Executive Team
+
+**Secondary Stakeholder(s)**
+
+-   Cyclistic Marketing Analytics Team
+
+## **Phase 2: Prepare**
+
+**1.Identify the Data Source**
+
+**Dataset:** Bike Rental Trip Data for May of 2023 (CC0: Public Domain, dataset 
+made available by Motivate International Inc.) [Click here](https://divvy-tripdata.s3.amazonaws.com/index.html) to access the data 
+set. This dataset contains trip data for over 600,000 different trips. The data includes start and end times, start and end stations, and member status. While 
+there is data dating back to 2013, 600,000 is more than sufficient as a sample 
+size.
+
+**2. Determine the credibility of the data**
+
+I will use the **"ROCCC"** system to determine the credibility and integrity of 
+the data.
+
+**Reliability:** The data is reliable. The sample size is very large and is a first party source.
+
+**Originality:** The data is original. The data is sourced internally.
+
+**Comprehensiveness:** The data is **not** comprehensive. Due to data privacy, all PII has been removed. This may limit the final analysis options.
+
+**Current:** The data is current. The data is from May of 2023. At the time of this analysis the June set was not available, but it is not likely the data from May to June will shift drastically.
+
+**Cited:** The data is cited. The data comes from an internal source.
+
+## **Phase 3: Process**
+
+**Note:** All of my analysis will be done in RStudio.
+
+I will start by loading the necessary packages.
+
+```{r loading tidyverse, janitor, and lubridate}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(skimr)
+```
+
+Next, I will import the necessary files onto R.
+
+```{r import dataset}
+BD_0523 <- read.csv("202305-divvy-tripdata.csv")
+##BD = Bike Data, 0523 = Date of Survey
+```
+
+### **Cleaning the dataset**
+
+Now, we can take a quick look at the dataset.
+
+```{r headview of BD_0523}
+head(BD_0523)
+```
+
+Lets look at the columns names for the data set.
+
+```{r column names for BD_0523}
+colnames(BD_0523)
+```
+
+Lets check the amount of distinct rides.
+
+```{r Distinct rides count}
+n_distinct(BD_0523)
+```
+
+Lets also check the number of observations in the table.
+
+```{r # of observations}
+nrow(BD_0523)
+```
+
+Since both the distinct rides and observations are equal there should be no duplicates in the data set. Just to be sure, lets run a duplicate check on the dataset.
+
+```{r Duplicate check}
+nrow(BD_0523[duplicated(BD_0523),])
+```
+
+Since the result is 0 we have now confirmed there are no duplicates in the data set. From this we can conclude there have been 604827 rides with Cyclistic in May of 2023.
+
+Now, we can check if there are any rows with null or NA values.
+
+```{r check for null and NA values}
+nrow(BD_0523[is.null(BD_0523),])
+nrow(BD_0523[is.na(BD_0523),])
+```
+
+It appears there are 1420 rows with NA values. Lets remove those rows.
+
+```{r remove NA rows}
+BD_0523_RNA <- na.omit(BD_0523)
+#RNA = Removed NA
+nrow(BD_0523_RNA[is.na(BD_0523_RNA),])
+#checking again for NA Values
+```
+
+For future analysis lets find the length of each trip and the day of the week the trip was taken. Also, we can remove unnecessary columns.
+
+```{r adding new columns}
+BD_0523_Subset <- subset(BD_0523_RNA, select = -c(start_station_id, end_station_id, start_lat, start_lng, end_lat, end_lng))
+BD_0523_Mut1 <- mutate(BD_0523_Subset, day_of_week = wday(started_at, label=TRUE))
+BD_0523_Mut2 <- mutate(BD_0523_Mut1, ride_length = difftime(ended_at, started_at))
+BD_0523_Mut2$ride_length <- as.numeric(BD_0523_Mut2$ride_length)
+```
+
+Now, lets look at the new table
+
+```{r head view of new table}
+head(BD_0523_Mut2)
+```
+
+Now, we can filter out cases that might impact our analysis
+
+```{r filtering the data}
+BD_0523_filtered <- BD_0523_Mut2 %>%
+    filter(ride_length > 10 & ended_at > started_at & end_station_name != "" & start_station_name != "" & ride_length < 1140)
+#Assuming People are not riding past 24 hours and trips are at least 10 minutes
+```
+
+## **Phase 4: Analyze**
+
+I will now check the statistical summary for the dataset.
+
+```{r stat summary}
+summary(BD_0523_filtered)
+BD_0523_filtered %>%
+  count(start_station_name, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered %>%
+  count(end_station_name, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered %>%
+  count(rideable_type, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered %>%
+  count(member_casual, sort = TRUE) %>%
+  slice(1:5)
+```
+
+Observations:
+
+-   The two most popular days to ride are Tuesday and Wednesday. The two least popular days to ride are Sunday and Saturday.
+-   The average ride length is 522 Minutes or 8.7 Hours.
+-   The two most common place to start and end a trip is Streeter Dr & Grand Ave and Kingsbury St & Kinzie St
+
+Deductions:
+
+-   Users who use the bikes for work commuting are not using them as often on the weekend.
+-   A large amount of users will get a bike at the start of their work day and return it after.
+-   A large amount of users are starting their trip at a very touristy area.
+
+Now, we can look at the specific stats for both Casuals and Members. Lets start with Casuals.
+
+```{r casual calcs}
+BD_0523_filtered_c <- BD_0523_filtered %>%
+  filter(member_casual == 'casual')
+summary(BD_0523_filtered_c)
+BD_0523_filtered_c %>%
+  count(start_station_name, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered_c %>%
+  count(end_station_name, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered_c %>%
+  count(rideable_type, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered_c %>%
+  count(member_casual, sort = TRUE) %>%
+  slice(1:5)
+```
+
+Observations:
+
+-   The two most popular days for Casuals to use the bikes are Saturday and Sunday, while the two least popular are Monday and Friday.
+-   The average ride length is 570 Minutes or 9.5 hours.
+-   The two most common place to start and end a trip is Streeter Dr & Grand Ave and DuSable Lake Shore Dr & Monroe St
+
+Deductions:
+
+-   Casuals are using their bike more often on the weekends.
+-   Casuals trip length is longer than the population's average.
+-   Casuals are starting and ending their trips similar to the population.
+
+Now, lets look at Annual Members
+
+```{r member calcs}
+BD_0523_filtered_m <- BD_0523_filtered %>%
+  filter(member_casual == 'member')
+summary(BD_0523_filtered_m)
+BD_0523_filtered_m %>%
+  count(start_station_name, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered_m %>%
+  count(end_station_name, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered_m %>%
+  count(rideable_type, sort = TRUE) %>%
+  slice(1:5)
+BD_0523_filtered_m %>%
+  count(member_casual, sort = TRUE) %>%
+  slice(1:5)
+```
+
+Observations:
+
+-   The two most popular days for Members to use the bikes are Tuesday and Wednesday, while the two least popular are Sunday and Saturday.
+-   The average ride length is 499 Minutes or 8.3 hours.
+-   The two most common place to start a trip is Kingsbury St & Kinzie St and Clinton St & Washington Blvd, where that is flipped for ending a trip
+
+Deductions:
+
+-   Members are using their bike more often in the middle of the week.
+-   Members trip length is shorter than the population's average.
+-   Members are starting and ending their trips commonly at the same place.
+
+## **Phase 5: Share**
+
+### \*Visualizations\*\*
+
+Here I will create my Vizs to show the relationship between the data.
+
+**Fig.1-4** **Bar Graphs showing difference between starting locations for Members vs. Casual**
+```{r Fig 1}
+ggplot(data = BD_0523_filtered_c, aes(x = start_station_name, fill = start_station_name)) +
+  geom_bar() + scale_x_discrete(limits=c("Streeter Dr & Grand Ave", "DuSable Lake Shore Dr & Monroe St", "DuSable Lake Shore Dr & North Blvd", "Michigan Ave & Oak St","Wells St & Concord Ln")) + theme(axis.text.x=element_blank()) + xlab("Starting Station") + ylab("# of trip starts") + labs(title="Top Five Casuals Starting Stations") + guides(fill=guide_legend(title="Consumer Starting Station Name"))
+```
+```{r Fig 2}
+ggplot(data = BD_0523_filtered_c, aes(x = end_station_name, fill = end_station_name)) +
+  geom_bar() + scale_x_discrete(limits=c("Streeter Dr & Grand Ave", "DuSable Lake Shore Dr & Monroe St", "DuSable Lake Shore Dr & North Blvd", "Millennium Park","Michigan Ave & Oak St")) + theme(axis.text.x=element_blank()) + xlab("Ending  Station") + ylab("# of Trip Ends") + guides(fill=guide_legend(title="Consumer Ending Station Name"))  + labs(title="Top Five Casuals Ending Stations")
+```
+```{r Fig 3}
+ggplot(data = BD_0523_filtered_m, aes(x = start_station_name, fill = start_station_name)) +
+  geom_bar() + scale_x_discrete(limits=c("Kingsbury St & Kinzie St", "Clinton St & Washington Blvd", "University Ave & 57th St", "Clark St & Elm St","Ellis Ave & 60th St")) + theme(axis.text.x=element_blank()) + xlab("Starting Station") + ylab("# of trip starts") + guides(fill=guide_legend(title="Member Starting Station Name"))  + labs(title="Top Five Members Starting Stations")
+```
+```{r Fig 4}
+ggplot(data = BD_0523_filtered_m, aes(x = end_station_name, fill = end_station_name)) +
+  geom_bar() + scale_x_discrete(limits=c("Clinton St & Washington Blvd", "Kingsbury St & Kinzie St", "University Ave & 57th St", "Clark St & Elm St","Wells St & Concord Ln")) + theme(axis.text.x=element_blank()) + xlab("Ending  Station") + ylab("# of Trip Ends") + guides(fill=guide_legend(title="Consumer Ending Station Name"))  + labs(title="Top Five Members Ending Stations")
+```
+
+
+**Fig.5** **Bar Graph showing Days of the Week Utilization for Members vs. Casual**
+```{r fig 5}
+ggplot(data=BD_0523_filtered) +
+  geom_bar(mapping=aes(x=day_of_week, fill = day_of_week)) +
+  labs(title="Days of the Week Utilization", x="Day of the Week", y="Count") +  theme(axis.text.x = element_text(angle = 90)) +
+  facet_grid(~member_casual)
+```
+
+
+## **Phase 6: Act**
+
+**Recommendations for Cyclistic Marketing Team**
+ 
+  1. Based off fig.5, the peak use days and minimal use days are reversed for Members and Casuals. To take advantage of this, the marketing team can run a promotion for annual passes during the weekend at the most popular spots for Casuals.
+  
+  2. Based off fig.1-4, the starting and ending locations for Casuals are very similar. The marketing team can work to have extra annual memberships promotions posted around those areas. 
+  
+  3. Based off fig.5, and the fact provided by Cyclistic that over 30% of Members use the bikes for commuting purposes, Cyclistic can reach out to that subsection for testimonials about the convenience and cost-savings of commuting to work with Cyclistic bikes.
+  
+**Recommendations based on limitations of dataset**
+  
+  1. Due to the missing PII, we cannot look at specific individuals. This additional data may show income/location based reasons for membership. It would also help identify average # of rides for Members Vs. Casuals
+  
+  2. Since there is only quantitative data on the bikes themselves we do not know the human reasons why Casuals are not signing up for memberships.
+  
+  3. Since we are only checking May, there may be differences in use in colder months.
