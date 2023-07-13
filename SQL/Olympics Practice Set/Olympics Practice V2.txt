@@ -1,0 +1,466 @@
+#For this SQL project i will be answering 20 question from this data set
+#Let start BY introducing the table 
+
+SELECT 
+  *
+FROM
+  fine-guru-390913.Olympics.Athlete_Events;
+
+#1.How many olympics Games have been held?
+SELECT 
+  COUNT(DISTINCT(GAMES))
+FROM
+  fine-guru-390913.Olympics.Athlete_Events;
+
+#2. List down all Olympics Games held so far.
+
+SELECT
+  DISTINCT(Games)
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+ORDER BY 
+  Games;
+
+#3. Mention the total no of nations who participated in each olympics game?
+
+SELECT 
+  COUNT(DISTINCT(NOC)) AS Name_Of_Country, 
+Games
+FROM 
+  fine-guru-390913.Olympics.Athlete_Events
+GROUP BY Games 
+ORDER BY Games;
+
+#4. Which year saw the highest and lowest no of countries participating in olympics?
+
+#Highest
+SELECT 
+  COUNT(DISTINCT(NOC)) AS Name_Of_Country, 
+Games
+FROM 
+  fine-guru-390913.Olympics.Athlete_Events
+GROUP BY Games 
+ORDER BY Games DESC
+LIMIT 1;
+
+#Lowest
+SELECT 
+  COUNT(DISTINCT(NOC)) AS Name_Of_Country, 
+Games
+FROM 
+  fine-guru-390913.Olympics.Athlete_Events
+GROUP BY Games 
+ORDER BY Games
+LIMIT 1;
+
+#5. Which nation has participated in all of the olympic Games?
+
+SELECT Region, COUNT(DISTINCT(Games)) AS Total_Games
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+JOIN
+  Olympics.NOC_Region
+ON
+  NOC_Region.NOC = Athlete_Events.NOC
+GROUP BY
+  Region
+HAVING COUNT(DISTINCT(Games)) = 51;
+
+#6. Identify the sport which was played in all summer olympics.
+
+# Checking # of Summer Games
+SELECT
+  COUNT(DISTINCT(Games))
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+WHERE
+  Season = 'Summer';
+
+WITH
+  Summer_Games AS (
+    SELECT 
+      COUNT(DISTINCT(Games)) AS Total_Games, Sport
+    FROM
+      fine-guru-390913.Olympics.Athlete_Events
+    WHERE Season = 'Summer'
+    GROUP BY
+      Sport
+  )
+SELECT sport, Total_Games
+FROM Summer_Games
+WHERE Total_Games = 29;
+
+#7. Which Sports were just played only once in the olympics?
+
+WITH
+  Total_Played AS (
+    SELECT 
+      COUNT(DISTINCT(Games)) AS Total_Games, Sport
+    FROM
+      fine-guru-390913.Olympics.Athlete_Events
+    GROUP BY
+      Sport
+  )
+SELECT sport, Total_Games
+FROM Total_Played
+WHERE Total_Games = 1;
+
+#8. Fetch the total no of sports played in each olympic Games.
+
+SELECT
+  DISTINCT(Games), COUNT(DISTINCT(Sport)) As Total_Sports
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+GROUP BY
+  Games
+ORDER BY
+  Total_Sports DESC;
+
+#9. Fetch details of the oldest athletes to win a Gold medal.
+
+SELECT
+  *
+FROM
+ fine-guru-390913.Olympics.Athlete_Events
+WHERE
+  Medal = 'Gold' AND Age != 'NA'
+ORDER BY
+  Age DESC
+LIMIT 1;
+
+#10. Find the Ratio of male and female athletes participated in all olympic Games.
+SELECT
+  (SELECT
+    COUNT(Sex)
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  WHERE
+    Sex = 'M'
+  ) AS Males_In_Olympics,
+  (
+    SELECT
+  COUNT(Sex)
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+WHERE
+  Sex = 'F'
+  ) AS Females_In_Olympics,
+  #(Males_In_Olympics/Females_In_Olympics) AS Gender_Ratio
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+LIMIT 1;
+#11. Fetch the top 5 athletes who have won the most Gold medals.
+  SELECT
+    Name, COUNT(Medal) AS Number_Of_Golds
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  WHERE
+    Medal = 'Gold'
+  GROUP BY
+    Name
+  ORDER BY
+    COUNT(Medal) DESC
+  LIMIT 5;
+#12. Fetch the top 5 athletes who have won the most medals (Gold/Silver/Bronze).
+  SELECT
+    Name, COUNT(Medal) AS Number_Of_Golds
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  WHERE
+    Medal = 'Gold' OR Medal = 'Silver' OR Medal = 'Bronze'
+  GROUP BY
+    Name
+  ORDER BY
+    COUNT(Medal) DESC
+  LIMIT 5;
+
+#13. Fetch the top 5 most successful countries in olympics. Success is defined BY no of medals won.
+
+  SELECT
+    Region, COUNT(Medal) AS Number_Of_Medals
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  JOIN
+    fine-guru-390913.Olympics.NOC_Region
+  ON
+    NOC_Region.NOC = Athlete_Events.NOC
+  WHERE
+    Medal = 'Gold' OR Medal = 'Silver' OR Medal = 'Bronze'
+  GROUP BY
+    Region
+  ORDER BY
+    COUNT(Medal) DESC
+  LIMIT 5;
+
+#14. List down total Gold, Silver and broze medals won BY each Country.
+# Not Broken Down
+  SELECT
+    Region, COUNT(Medal) AS Number_Of_Medals
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  JOIN
+    fine-guru-390913.Olympics.NOC_Region
+  ON
+    NOC_Region.NOC = Athlete_Events.NOC
+  WHERE
+    Medal = 'Gold' OR Medal = 'Silver' OR Medal = 'Bronze'
+  GROUP BY
+    Region
+  ORDER BY
+    COUNT(Medal) DESC;
+
+# Broken Down
+WITH
+  Total_Golds AS (
+    SELECT Region AS Region_G, COUNT(Medal) AS Num_Of_Golds
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  JOIN
+    fine-guru-390913.Olympics.NOC_Region
+  ON
+    NOC_Region.NOC = Athlete_Events.NOC
+  WHERE
+    Medal = 'Gold'
+  GROUP BY
+    Region_G
+  ORDER BY
+    COUNT(Medal) DESC
+  ),
+  Total_Silvers AS (
+    SELECT Region AS Region_S, COUNT(Medal)  AS Num_Of_Silvers 
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  JOIN
+    fine-guru-390913.Olympics.NOC_Region
+  ON
+    NOC_Region.NOC = Athlete_Events.NOC
+  WHERE
+    Medal = 'Silver'
+  GROUP BY
+    Region_S
+  ORDER BY
+    COUNT(Medal) DESC
+  ),
+  Total_Bronzes AS (
+    SELECT Region AS Region_B, COUNT(Medal) AS Num_Of_Bronzes
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  JOIN
+    fine-guru-390913.Olympics.NOC_Region
+  ON
+    NOC_Region.NOC = Athlete_Events.NOC
+  WHERE
+    Medal = 'Bronze'
+  GROUP BY
+    Region_B
+  ORDER BY
+    COUNT(Medal) DESC
+  )
+SELECT
+  Region, Num_of_Golds, Num_of_Silvers, Num_Of_Bronzes 
+FROM
+  Total_Golds
+JOIN
+  Total_Silvers
+ON
+  Total_Silvers.Region_S = Total_Golds.Region_G
+JOIN
+  Total_Bronzes
+ON
+  Total_Bronzes.Region_B = Total_Silvers.Region_S
+JOIN
+  fine-guru-390913.Olympics.NOC_Region
+ON
+  NOC_Region.Region = Total_Golds.Region_G
+GROUP BY
+  Region, Num_Of_Golds, Num_Of_Silvers, Num_Of_Bronzes
+ORDER BY
+  Num_Of_Golds DESC;
+
+#15. List down total Gold, Silver and broze medals won BY each Country corresponding to each olympic Games.
+
+SELECT
+  Region, Games,
+SUM(CASE WHEN Medal = 'Gold' THEN 1 ELSE 0 END) AS Gold,
+SUM(CASE WHEN Medal = 'Silver' THEN 1 ELSE 0 END) AS Silver,
+SUM(CASE WHEN Medal = 'Bronze' THEN 1 ELSE 0 END) AS Bronze
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+JOIN
+  fine-guru-390913.Olympics.NOC_Region
+ON
+    NOC_Region.NOC = Athlete_Events.NOC
+GROUP BY 
+  Region, Games
+ORDER BY 
+  Games;
+
+#16. Identify which Country won the most Gold, most Silver and most Bronze medals in each olympic Games.
+
+WITH Max_Medals AS 
+ (
+  SELECT 
+    SUBSTRING(Games_Country, 1,  11 ) AS Games,
+    SUBSTRING(Games_Country, 13,  15 ) as Country,
+    COALESCE(Gold, 0) AS Gold,
+    COALESCE(Silver, 0) AS Silver,
+    COALESCE(Bronze, 0) AS Bronze
+  FROM
+    (
+      SELECT 
+        CONCAT(Games, '-', Region) AS Games_Country, Medal, COUNT(*) AS Tot_Medals
+      FROM
+        fine-guru-390913.Olympics.Athlete_Events
+      JOIN
+        fine-guru-390913.Olympics.NOC_Region
+      ON
+        NOC_Region.NOC = Athlete_Events.NOC
+      WHERE 
+        Medal != 'NA'
+      GROUP BY 
+        Region, Games, Medal
+    )
+  PIVOT
+    ( 
+	    SUM(Tot_Medals) 
+	    FOR(Medal) IN ('Gold', 'Silver', 'Bronze')
+    ) AS Pivot_table
+)
+SELECT DISTINCT  
+  Games, 
+  CONCAT(FIRST_VALUE(Country) OVER(PARTITION BY Games ORDER BY Gold DESC), ' - ',
+  FIRST_VALUE(Gold) OVER(PARTITION BY Games ORDER BY Gold DESC)) as Max_Gold,
+  CONCAT(FIRST_VALUE(Country) OVER(PARTITION BY Games ORDER BY Silver DESC), ' - ',
+  FIRST_VALUE(Silver) OVER(PARTITION BY Games ORDER BY Silver DESC)) as Max_Silver,
+  CONCAT(FIRST_VALUE(Country) OVER(PARTITION BY Games ORDER BY Bronze DESC), ' - ',
+  FIRST_VALUE(Bronze) OVER(PARTITION BY Games ORDER BY Bronze DESC)) as Max_Bronze
+FROM
+  Max_Medals
+ORDER BY 
+  Games;
+
+#17. Identify which Country won the most Gold, most Silver, most Bronze medals and the most medals in each olympic Games.
+
+WITH Max_Medals AS 
+ (
+  SELECT 
+    SUBSTRING(Games_Country, 1,  11 ) AS Games,
+    SUBSTRING(Games_Country, 13,  15 ) as Country,
+    COALESCE(Gold, 0) AS Gold,
+    COALESCE(Silver, 0) AS Silver,
+    COALESCE(Bronze, 0) AS Bronze
+  FROM
+    (
+      SELECT 
+        CONCAT(Games, '-', Region) AS Games_Country, Medal, COUNT(*) AS Tot_Medals
+      FROM
+        fine-guru-390913.Olympics.Athlete_Events
+      JOIN
+        fine-guru-390913.Olympics.NOC_Region
+      ON
+        NOC_Region.NOC = Athlete_Events.NOC
+      WHERE 
+        Medal != 'NA'
+      GROUP BY 
+        Region, Games, Medal
+    )
+  PIVOT
+    ( 
+	    SUM(Tot_Medals) 
+	    FOR(Medal) IN ('Gold', 'Silver', 'Bronze')
+    ) AS Pivot_table
+),
+Tot_Medals AS
+    (
+    SELECT 
+      Games, Region AS Country, COUNT(*) AS Total_Medals
+    FROM
+      fine-guru-390913.Olympics.Athlete_Events
+    JOIN
+      fine-guru-390913.Olympics.NOC_Region
+    ON
+      NOC_Region.NOC = Athlete_Events.NOC
+    WHERE 
+      Medal != 'NA'
+    GROUP BY 
+      Games,Region )
+SELECT DISTINCT  
+  Max_Medals.Games, 
+  CONCAT(FIRST_VALUE(Max_Medals.Country) OVER(PARTITION BY Max_Medals.Games ORDER BY Gold DESC), ' - ',
+  FIRST_VALUE(Gold) OVER(PARTITION BY Max_Medals.Games ORDER BY Gold DESC)) as Max_Gold,
+  CONCAT(FIRST_VALUE(Max_Medals.Country) OVER(PARTITION BY Max_Medals.Games ORDER BY Silver DESC), ' - ',
+  FIRST_VALUE(Silver) OVER(PARTITION BY Max_Medals.Games ORDER BY Silver DESC)) as Max_Silver,
+  CONCAT(FIRST_VALUE(Max_Medals.Country) OVER(PARTITION BY Max_Medals.Games ORDER BY Bronze DESC), ' - ',
+  FIRST_VALUE(Bronze) OVER(PARTITION BY Max_Medals.Games ORDER BY Bronze DESC)) as Max_Bronze,
+  CONCAT(FIRST_VALUE(Max_Medals.Country) OVER (PARTITION BY Max_Medals.Games ORDER BY Total_Medals DESC) , ' - ', 
+  FIRST_VALUE(Total_Medals) OVER(PARTITION BY Max_Medals.Games ORDER BY Total_Medals DESC)) AS Max_Medals
+FROM
+  Max_Medals
+JOIN 
+  Tot_Medals 
+ON 
+  Tot_Medals.Games = Max_Medals.Games AND Tot_Medals.Country = Max_Medals.Country
+ORDER BY 
+  Games;
+
+#18. Which countries have never won Gold medal but have won Silver/Bronze medals?
+
+WITH Number_Of_Medals AS 
+(
+  SELECT
+    Region, Games,
+  SUM(CASE WHEN Medal = 'Gold' THEN 1 ELSE 0 END) AS Gold,
+  SUM(CASE WHEN Medal = 'Silver' THEN 1 ELSE 0 END) AS Silver,
+  SUM(CASE WHEN Medal = 'Bronze' THEN 1 ELSE 0 END) AS Bronze
+  FROM
+    fine-guru-390913.Olympics.Athlete_Events
+  JOIN
+    fine-guru-390913.Olympics.NOC_Region
+  ON
+    NOC_Region.NOC = Athlete_Events.NOC
+  GROUP BY 
+    Region, Games
+  ORDER BY 
+    Games  
+)
+SELECT
+  Region, Gold, Silver, Bronze
+FROM
+  Number_Of_Medals
+WHERE Gold = 0 AND Silver > 0 AND BRONZE > 0
+ORDER BY
+  Silver, Bronze DESC;
+
+#19. In which Sport/event, India has won highest medals.
+
+SELECT 
+  Sport, COUNT(Medal) AS Total_Medals
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+JOIN
+  fine-guru-390913.Olympics.NOC_Region
+ON
+  NOC_Region.NOC = Athlete_Events.NOC
+WHERE Team = 'India' AND Medal != 'NA'
+GROUP BY 
+  Sport
+ORDER BY 
+  Total_Medals DESC
+LIMIT 1;
+
+#20. Break down all olympic Games where india won medal for Hockey and how many medals in each olympic Games.
+
+SELECT 
+  Team, Sport, Games, COUNT(Medal) as Total_Medals
+FROM
+  fine-guru-390913.Olympics.Athlete_Events
+JOIN
+  fine-guru-390913.Olympics.NOC_Region
+ON
+  NOC_Region.NOC = Athlete_Events.NOC
+WHERE
+  Sport = 'Hockey' AND Team = 'India' AND Medal != 'NA'
+GROUP BY 
+  Team, Games, Sport
+ORDER BY
+  Total_Medals DESC;
