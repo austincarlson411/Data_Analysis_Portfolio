@@ -7,3 +7,5 @@ VLOOKUP Practice - https://docs.google.com/spreadsheets/d/1RF8OGlWg5c6vYdhXevi2V
 Pivot Table Practice - https://docs.google.com/spreadsheets/d/1Cv7Ij321Iq8o_WOuzu6sLpmY5NxB7vqjdx9ltm5gT4Y/edit?usp=sharing
 
 IF Funtion Practice - https://docs.google.com/spreadsheets/d/1iswjU4ozWp2yew4ilbzYSW7sqYyNLK3f6tC-MEumwOk/edit?usp=sharing
+
+General Practice (Includes VLOOKUP, TRIM, AVERAGEIF, and UNIQUE) - https://docs.google.com/spreadsheets/d/1nWQAVBRD8642yL5Uu2gimwR5Up9t0FSuKAn25A1JhjA/edit?usp=sharing
